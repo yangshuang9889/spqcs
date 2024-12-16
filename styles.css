@@ -43,50 +43,45 @@ body {
     position: relative;
     z-index: 1;
     display: grid;
-    gap: 8px;
-    padding: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 16px;
     width: 100%;
     max-width: 1920px;
     margin: 0 auto;
-    background: transparent;
-    will-change: contents;
     margin-bottom: 120px;
-    overflow: hidden;
-    transform-style: flat;
-    -webkit-transform-style: flat;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
 }
 
 /* 基础视频卡片样式 */
 .video-card {
     position: relative;
     aspect-ratio: 9/16;
-    overflow: hidden;
+    background: #000;
     border-radius: 8px;
+    overflow: hidden;
     cursor: pointer;
-    animation: rainbow-border 8s linear infinite;
-    padding: 1px;
-    background: linear-gradient(45deg, 
-        #ff0000, #ff7f00, #00ff00, 
-        #0000ff, #8f00ff
+    padding: 2px;
+    background: linear-gradient(
+        45deg,
+        #ff0000,
+        #ff7f00,
+        #ffff00,
+        #00ff00,
+        #0000ff,
+        #4b0082,
+        #8f00ff,
+        #ff0000
     );
     background-size: 200% 200%;
-    will-change: background-position;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
-    perspective: 1000px;
-    -webkit-perspective: 1000px;
+    animation: rainbow-border 4s linear infinite;
 }
 
 .video-card::after {
     content: '';
     position: absolute;
-    inset: 1px;
+    inset: 2px;
     background: #000;
-    border-radius: 7px;
+    border-radius: 6px;
     z-index: 0;
 }
 
@@ -94,29 +89,40 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    z-index: 1;
-    border-radius: 7px;
+    display: block;
     opacity: 0;
     transition: opacity 0.3s ease;
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    transform-style: preserve-3d;
-    -webkit-transform-style: preserve-3d;
-    perspective: 1000px;
-    -webkit-perspective: 1000px;
+    position: relative;
+    z-index: 1;
+    border-radius: 6px;
 }
 
-/* 视频加载完成后显示 */
+/* 添加彩虹边框动画 */
+@keyframes rainbow-border {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* 悬停效果增强 */
+.video-card:hover {
+    transform: scale(1.02);
+    transition: transform 0.3s ease;
+}
+
+/* 确保加载指示器在最上层 */
+.loading-indicator {
+    z-index: 2;
+}
+
 .video-card video.loaded {
     opacity: 1;
-    visibility: visible;
 }
 
 @keyframes rainbow-border {
@@ -131,44 +137,66 @@ body {
 /* 播放状态样式 */
 .video-card.playing {
     position: fixed;
-    top: 45%;
+    top: 50%;
     left: 50%;
-    transform: translate3d(-50%, -50%, 0) !important;
-    -webkit-transform: translate3d(-50%, -50%, 0) !important;
+    transform: translate(-50%, -50%) !important;
     width: 45vh;
-    height: 75vh;
+    height: 80vh;
     max-width: 90vw;
-    max-height: 75vh;
+    max-height: 80vh;
     z-index: 2000;
-    animation: none;
     background: #000;
     padding: 0;
-    transition: all 0.3s ease;
-    will-change: transform;
-    pointer-events: none;
-    margin-bottom: 120px;
-    perspective: none;
-    -webkit-perspective: none;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
 }
 
 .video-card.playing video {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    border-radius: 12px;
     opacity: 1;
-    visibility: visible;
-    transition: all 0.3s ease;
-    will-change: transform;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    pointer-events: auto;
-    position: relative;
 }
 
-/* 移除悬停效果对播放状态的影响 */
+/* 移除遮罩层 */
+/* body.video-playing::after {
+    display: none;
+} */
+
+/* 移除播放状态的悬停效果 */
 .video-card.playing:hover {
     transform: translate(-50%, -50%) !important;
-    animation: none;
+}
+
+/* 添加关闭提示 */
+.video-card.playing::before {
+    content: '点击关闭 或 按ESC';
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 2001;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.video-card.playing:hover::before {
+    opacity: 1;
+}
+
+/* 响应式调整 */
+@media screen and (max-width: 767px) {
+    .video-card.playing {
+        width: 90vw;
+        height: 70vh;
+    }
 }
 
 /* 标题样式 */
@@ -215,8 +243,8 @@ h1 {
     /* 视频容器移动端样式 */
     .video-container {
         grid-template-columns: repeat(2, 1fr);
-        gap: 4px;
-        padding: 4px;
+        gap: 8px;
+        padding: 8px;
         margin-bottom: 100px;
     }
     
@@ -228,7 +256,7 @@ h1 {
         margin-bottom: 100px;
     }
     
-    /* 标题移动端样式 */
+    /* 题移动端样式 */
     h1 {
         font-size: 1.5rem;
         margin: 15px 0;
@@ -398,14 +426,25 @@ footer {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     color: white;
-    padding: 8px 16px;
-    border-radius: 4px;
+    padding: 10px 20px;
+    border-radius: 8px;
     z-index: 2;
+    text-align: center;
+    font-size: 14px;
+    white-space: nowrap;
+    pointer-events: auto;
+    cursor: default;
 }
 
-.video-card {
-    position: relative;
-    background: rgba(0, 0, 0, 0.2);
+/* 添加加载动画 */
+@keyframes loading-pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.loading-indicator {
+    animation: loading-pulse 1.5s infinite;
 }
