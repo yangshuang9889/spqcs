@@ -19,9 +19,19 @@
     </div>
 
     <script>
+        window.addEventListener('error', function(e) {
+            if (e.target.tagName === 'VIDEO') {
+                console.log('视频加载错误:', e);
+                const videoCard = e.target.closest('.video-card');
+                if (videoCard) {
+                    videoCard.classList.remove('loading');
+                }
+            }
+        }, true);
+
         function createVideoCard(videoNumber) {
             const videoCard = document.createElement('div');
-            videoCard.className = 'video-card';
+            videoCard.className = 'video-card loading';
             
             const video = document.createElement('video');
             video.src = `sp/${videoNumber}.mp4`;
@@ -32,6 +42,7 @@
             
             video.addEventListener('loadeddata', () => {
                 video.classList.add('loaded');
+                videoCard.classList.remove('loading');
             });
             
             videoCard.appendChild(video);
@@ -152,21 +163,29 @@
             // 检查视频是否存在
             function checkVideo(number) {
                 return new Promise((resolve) => {
-                    const video = document.createElement('video');
-                    video.src = `sp/${number}.mp4`;
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('HEAD', `sp/${number}.mp4`, true);
                     
-                    video.onloadeddata = () => {
-                        validVideos.push(number); // 记录有效的视频编号
-                        resolve(true);
+                    xhr.onload = function() {
+                        if (xhr.status === 200) {
+                            validVideos.push(number);
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
                     };
                     
-                    video.onerror = () => {
+                    xhr.onerror = () => {
                         resolve(false);
                     };
                     
+                    xhr.send();
+                    
+                    // 设置较短的超时时间
                     setTimeout(() => {
+                        xhr.abort();
                         resolve(false);
-                    }, 2000);
+                    }, 1000);
                 });
             }
             
@@ -199,9 +218,32 @@
             
             // 加载视频
             async function loadVideo(number) {
-                if (validVideos.includes(number)) { // 只载已确认有效的视频
+                if (validVideos.includes(number)) {
                     try {
                         const videoCard = createVideoCard(number);
+                        const video = videoCard.querySelector('video');
+                        
+                        // 添加加载错误处理
+                        video.onerror = async function() {
+                            console.log(`视频 ${number} 加载失败，尝试重新加载...`);
+                            // 最多重试3次
+                            for (let i = 0; i < 3; i++) {
+                                try {
+                                    await new Promise((resolve, reject) => {
+                                        video.src = `sp/${number}.mp4?retry=${i}`;
+                                        video.onloadeddata = resolve;
+                                        video.onerror = reject;
+                                    });
+                                    break; // 如果成功加载，跳出重试循环
+                                } catch (e) {
+                                    console.log(`第 ${i + 1} 次重试失败`);
+                                    if (i === 2) {
+                                        videoCard.innerHTML = `<div class="error-message">视频 ${number} 加载失败</div>`;
+                                    }
+                                }
+                            }
+                        };
+                        
                         videoContainer.appendChild(videoCard);
                         loadedCount++;
                         currentCountElement.textContent = loadedCount;
