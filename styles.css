@@ -398,11 +398,31 @@ footer {
 }
 
 .error-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
     color: #ff4444;
-    text-align: center;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 20px;
     border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+    z-index: 10;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.error-message:hover {
+    background: rgba(0, 0, 0, 0.9);
+    transform: translate(-50%, -50%) scale(1.05);
+}
+
+/* 加载中状态样式 */
+.video-card.loading .error-message {
+    color: white;
+    background: rgba(0, 0, 0, 0.7);
 }
 
 .video-card.loading {
@@ -447,4 +467,64 @@ footer {
 
 .loading-indicator {
     animation: loading-pulse 1.5s infinite;
+}
+
+/* 玻璃态按钮样式 */
+.glass-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    margin-right: 15px;
+    outline: none;
+}
+
+.glass-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.glass-button:not(:disabled):hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+.glass-button:not(:disabled):active {
+    transform: translateY(0);
+}
+
+.glass-button.loading .reload-icon {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 重新加载图标样式 */
+.reload-icon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+}
+
+/* 调整计数器容器样式 */
+#videoCount {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+    color: #fff;
 }
