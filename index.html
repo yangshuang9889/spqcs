@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Accept-CH" content="DPR, Viewport-Width, Width">
     <!-- 添加图标 -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" type="image/svg+xml">
     <title>竖版视频墙</title>
@@ -21,28 +23,40 @@
     <script>
         window.addEventListener('error', function(e) {
             if (e.target.tagName === 'VIDEO') {
-                console.log('视频加载错误:', e);
-                const videoCard = e.target.closest('.video-card');
-                if (videoCard) {
-                    videoCard.classList.remove('loading');
-                }
+                console.log('视频加载错误:', {
+                    src: e.target.src,
+                    error: e.target.error,
+                    networkState: e.target.networkState,
+                    readyState: e.target.readyState
+                });
             }
         }, true);
 
         function createVideoCard(videoNumber) {
             const videoCard = document.createElement('div');
-            videoCard.className = 'video-card loading';
+            videoCard.className = 'video-card';
             
             const video = document.createElement('video');
-            video.src = `sp/${videoNumber}.mp4`;
+            video.src = `./sp/${videoNumber}.mp4`;
             video.loop = true;
             video.preload = 'metadata';
             video.setAttribute('playsinline', '');
             video.muted = true;
             
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading-indicator';
+            loadingDiv.textContent = '加载中...';
+            videoCard.appendChild(loadingDiv);
+            
             video.addEventListener('loadeddata', () => {
                 video.classList.add('loaded');
-                videoCard.classList.remove('loading');
+                loadingDiv.remove();
+            });
+            
+            video.addEventListener('error', (e) => {
+                console.error(`视频 ${videoNumber} 加载失败:`, e.target.error);
+                loadingDiv.textContent = '加载失败';
+                loadingDiv.style.color = '#ff4444';
             });
             
             videoCard.appendChild(video);
@@ -164,7 +178,8 @@
             function checkVideo(number) {
                 return new Promise((resolve) => {
                     const xhr = new XMLHttpRequest();
-                    xhr.open('HEAD', `sp/${number}.mp4`, true);
+                    // 使用相对路径，并添加时间戳避免缓存
+                    xhr.open('HEAD', `./sp/${number}.mp4?t=${Date.now()}`, true);
                     
                     xhr.onload = function() {
                         if (xhr.status === 200) {
@@ -176,23 +191,23 @@
                     };
                     
                     xhr.onerror = () => {
+                        console.log(`视频 ${number} 检测失败`);
                         resolve(false);
                     };
                     
                     xhr.send();
                     
-                    // 设置较短的超时时间
                     setTimeout(() => {
                         xhr.abort();
                         resolve(false);
-                    }, 1000);
+                    }, 2000);
                 });
             }
             
             // 获取实际视频总数
             async function getTotalVideos() {
                 let consecutiveFailures = 0;
-                const maxConsecutiveFailures = 3;
+                const maxConsecutiveFailures = 3; // 连续失败3次就停止检测
                 let number = 1;
                 
                 while (consecutiveFailures < maxConsecutiveFailures) {
@@ -202,9 +217,11 @@
                     } else {
                         consecutiveFailures++;
                     }
+                    // 添加短暂延迟，避免过快检测
+                    await new Promise(resolve => setTimeout(resolve, 100));
                 }
                 
-                return validVideos.length; // 返回实际有的视频数量
+                return validVideos.length;
             }
             
             // 分批加载视频
@@ -221,29 +238,6 @@
                 if (validVideos.includes(number)) {
                     try {
                         const videoCard = createVideoCard(number);
-                        const video = videoCard.querySelector('video');
-                        
-                        // 添加加载错误处理
-                        video.onerror = async function() {
-                            console.log(`视频 ${number} 加载失败，尝试重新加载...`);
-                            // 最多重试3次
-                            for (let i = 0; i < 3; i++) {
-                                try {
-                                    await new Promise((resolve, reject) => {
-                                        video.src = `sp/${number}.mp4?retry=${i}`;
-                                        video.onloadeddata = resolve;
-                                        video.onerror = reject;
-                                    });
-                                    break; // 如果成功加载，跳出重试循环
-                                } catch (e) {
-                                    console.log(`第 ${i + 1} 次重试失败`);
-                                    if (i === 2) {
-                                        videoCard.innerHTML = `<div class="error-message">视频 ${number} 加载失败</div>`;
-                                    }
-                                }
-                            }
-                        };
-                        
                         videoContainer.appendChild(videoCard);
                         loadedCount++;
                         currentCountElement.textContent = loadedCount;
