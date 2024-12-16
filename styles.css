@@ -1,0 +1,370 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    background-color: #000000;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* 星空背景 */
+.stars {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.star {
+    position: absolute;
+    background: #ffffff;
+    border-radius: 50%;
+    animation: twinkle var(--duration) infinite;
+    box-shadow: 0 0 4px #fff,
+                0 0 8px #fff,
+                0 0 12px #fff;
+}
+
+@keyframes twinkle {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* 视频容器 */
+.video-container {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 8px;
+    padding: 8px;
+    width: 100%;
+    max-width: 1920px;
+    margin: 0 auto;
+    background: transparent;
+    will-change: contents;
+    margin-bottom: 120px;
+    overflow: hidden;
+    transform-style: flat;
+    -webkit-transform-style: flat;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* 基础视频卡片样式 */
+.video-card {
+    position: relative;
+    aspect-ratio: 9/16;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+    animation: rainbow-border 8s linear infinite;
+    padding: 1px;
+    background: linear-gradient(45deg, 
+        #ff0000, #ff7f00, #00ff00, 
+        #0000ff, #8f00ff
+    );
+    background-size: 200% 200%;
+    will-change: background-position;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+}
+
+.video-card::after {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    background: #000;
+    border-radius: 7px;
+    z-index: 0;
+}
+
+.video-card video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: 7px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    transform-style: preserve-3d;
+    -webkit-transform-style: preserve-3d;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+}
+
+/* 视频加载完成后显示 */
+.video-card video.loaded {
+    opacity: 1;
+    visibility: visible;
+}
+
+@keyframes rainbow-border {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 200% 50%;
+    }
+}
+
+/* 播放状态样式 */
+.video-card.playing {
+    position: fixed;
+    top: 45%;
+    left: 50%;
+    transform: translate3d(-50%, -50%, 0) !important;
+    -webkit-transform: translate3d(-50%, -50%, 0) !important;
+    width: 45vh;
+    height: 75vh;
+    max-width: 90vw;
+    max-height: 75vh;
+    z-index: 2000;
+    animation: none;
+    background: #000;
+    padding: 0;
+    transition: all 0.3s ease;
+    will-change: transform;
+    pointer-events: none;
+    margin-bottom: 120px;
+    perspective: none;
+    -webkit-perspective: none;
+}
+
+.video-card.playing video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.3s ease;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    pointer-events: auto;
+    position: relative;
+}
+
+/* 移除悬停效果对播放状态的影响 */
+.video-card.playing:hover {
+    transform: translate(-50%, -50%) !important;
+    animation: none;
+}
+
+/* 标题样式 */
+h1 {
+    color: #ffffff;
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    z-index: 1;
+    font-size: 2rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    background: linear-gradient(
+        90deg,
+        #ff0000 0%,
+        #ff7f00 14.28%,
+        #ffff00 28.56%,
+        #00ff00 42.84%,
+        #0000ff 57.12%,
+        #4b0082 71.4%,
+        #8f00ff 85.68%,
+        #ff0000 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rainbow-text 6s linear infinite;
+    text-shadow: none;
+}
+
+/* 添加彩虹文字动画 */
+@keyframes rainbow-text {
+    0% {
+        background-position: 0% center;
+    }
+    100% {
+        background-position: -200% center;
+    }
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 767px) {
+    /* 视频容器移动端样式 */
+    .video-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 4px;
+        padding: 4px;
+        margin-bottom: 100px;
+    }
+    
+    /* 播放状态移动端样式 */
+    .video-card.playing {
+        top: 40%;
+        height: 70vh;
+        max-height: 70vh;
+        margin-bottom: 100px;
+    }
+    
+    /* 标题移动端样式 */
+    h1 {
+        font-size: 1.5rem;
+        margin: 15px 0;
+        letter-spacing: 1px;
+        background-size: 300% auto;
+    }
+    
+    /* 页脚移动端样式 */
+    footer {
+        padding: 10px 0;
+    }
+    
+    #currentTime {
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+    
+    .links {
+        gap: 15px;
+    }
+    
+    .links a {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+    }
+}
+
+/* 移除重复的 .video-container 定义 */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+    .video-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        padding: 6px;
+    }
+}
+
+@media screen and (min-width: 1024px) {
+    .video-container {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+}
+
+/* 优化彩虹文字效果，避免重复定义 */
+.rainbow-text, h1 {
+    background: linear-gradient(
+        90deg,
+        #ff0000 0%,
+        #ff7f00 14.28%,
+        #ffff00 28.56%,
+        #00ff00 42.84%,
+        #0000ff 57.12%,
+        #4b0082 71.4%,
+        #8f00ff 85.68%,
+        #ff0000 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: rainbow-text 6s linear infinite;
+}
+
+/* 移除重复的动画定义 */
+@keyframes rainbow-text {
+    0% {
+        background-position: 0% center;
+    }
+    100% {
+        background-position: -200% center;
+    }
+}
+
+/* 修改页脚样式 */
+footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 2002;
+}
+
+/* 时间显示样式 */
+#currentTime {
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: #fff;
+    -webkit-text-fill-color: initial;
+}
+
+/* 链接样式 */
+.links {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    align-items: center;
+}
+
+.links a {
+    color: #fff;
+    text-decoration: none;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    -webkit-text-fill-color: initial;
+    background-clip: border-box;
+    -webkit-background-clip: border-box;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.links a i {
+    font-size: 1.1rem;
+}
+
+/* 悬停效果 */
+.links a:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.links a:hover i {
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+.separator {
+    color: rgba(255, 255, 255, 0.3);
+    -webkit-text-fill-color: initial;
+}

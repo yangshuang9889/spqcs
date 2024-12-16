@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 添加图标 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" type="image/svg+xml">
+    <title>竖版视频墙</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    <h1 style="text-align: center; margin: 20px 0;">视频墙</h1>
+    <div id="videoCount" style="text-align: center; color: #fff; margin-bottom: 20px;">
+        已加载: <span id="currentCount">0</span> / <span id="totalCount">加载中...</span>
+    </div>
+    <div class="video-container" id="videoContainer">
+        <!-- 视频卡片将通过JavaScript动态生成 -->
+    </div>
+
+    <script>
+        function createVideoCard(videoNumber) {
+            const videoCard = document.createElement('div');
+            videoCard.className = 'video-card';
+            
+            const video = document.createElement('video');
+            video.src = `sp/${videoNumber}.mp4`;
+            video.loop = true;
+            video.preload = 'metadata';
+            video.setAttribute('playsinline', '');
+            video.muted = true;
+            
+            video.addEventListener('loadeddata', () => {
+                video.classList.add('loaded');
+            });
+            
+            videoCard.appendChild(video);
+            
+            let isPlaying = false;
+            
+            // 添加鼠标悬停播放
+            videoCard.addEventListener('mouseenter', () => {
+                if (!isPlaying) {
+                    video.muted = true;
+                    video.play();
+                }
+            });
+            
+            videoCard.addEventListener('mouseleave', () => {
+                if (!isPlaying) {
+                    video.pause();
+                    video.currentTime = 0;
+                }
+            });
+            
+            // 点击视频播放或关闭
+            videoCard.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const footer = document.querySelector('footer');
+                
+                if (!isPlaying && !document.body.classList.contains('video-playing')) {
+                    try {
+                        // 打开视频前隐藏页脚
+                        footer.style.display = 'none';
+                        
+                        await video.load();
+                        video.muted = false;
+                        video.volume = 1.0;
+                        
+                        videoCard.classList.add('playing');
+                        document.body.classList.add('video-playing');
+                        isPlaying = true;
+                        
+                        await video.play();
+                    } catch (error) {
+                        console.error('视频播放失败:', error);
+                    }
+                } else if (isPlaying) {
+                    // 关闭视频时显示页脚
+                    video.muted = true;
+                    video.pause();
+                    video.currentTime = 0;
+                    
+                    videoCard.classList.remove('playing');
+                    document.body.classList.remove('video-playing');
+                    isPlaying = false;
+                    
+                    footer.style.display = 'block';
+                }
+            });
+            
+            // 添加键盘ESC关闭功能
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && isPlaying) {
+                    const footer = document.querySelector('footer');
+                    video.muted = true;
+                    video.pause();
+                    video.currentTime = 0;
+                    
+                    videoCard.classList.remove('playing');
+                    document.body.classList.remove('video-playing');
+                    isPlaying = false;
+                    
+                    footer.style.display = 'block';
+                }
+            });
+            
+            return videoCard;
+        }
+
+        function loadVideos() {
+            const videoContainer = document.getElementById('videoContainer');
+            const currentCountElement = document.getElementById('currentCount');
+            const totalCountElement = document.getElementById('totalCount');
+            
+            let loadedCount = 0;
+            let isLoading = true;
+            let totalVideos = 0;
+            let validVideos = []; // 存储有效的视频编号
+            
+            // 添加加载动画
+            function updateLoadingText() {
+                const dots = ['', '.', '..', '...'];
+                let index = 0;
+                
+                const loadingElement = document.createElement('div');
+                loadingElement.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 20px 40px;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    z-index: 2001;
+                `;
+                document.body.appendChild(loadingElement);
+                
+                const loadingInterval = setInterval(() => {
+                    loadingElement.textContent = `检测视频中${dots[index]}`;
+                    index = (index + 1) % dots.length;
+                }, 500);
+                
+                return {
+                    element: loadingElement,
+                    interval: loadingInterval
+                };
+            }
+            
+            // 检查视频是否存在
+            function checkVideo(number) {
+                return new Promise((resolve) => {
+                    const video = document.createElement('video');
+                    video.src = `sp/${number}.mp4`;
+                    
+                    video.onloadeddata = () => {
+                        validVideos.push(number); // 记录有效的视频编号
+                        resolve(true);
+                    };
+                    
+                    video.onerror = () => {
+                        resolve(false);
+                    };
+                    
+                    setTimeout(() => {
+                        resolve(false);
+                    }, 2000);
+                });
+            }
+            
+            // 获取实际视频总数
+            async function getTotalVideos() {
+                let consecutiveFailures = 0;
+                const maxConsecutiveFailures = 3;
+                let number = 1;
+                
+                while (consecutiveFailures < maxConsecutiveFailures) {
+                    if (await checkVideo(number)) {
+                        consecutiveFailures = 0;
+                        number++;
+                    } else {
+                        consecutiveFailures++;
+                    }
+                }
+                
+                return validVideos.length; // 返回实际有的视频数量
+            }
+            
+            // 分批加载视频
+            async function loadVideoBatch(videos, batchSize = 10) {
+                for (let i = 0; i < videos.length; i += batchSize) {
+                    const batch = videos.slice(i, i + batchSize);
+                    await Promise.all(batch.map(num => loadVideo(num)));
+                    await new Promise(resolve => setTimeout(resolve, 100)); // 批次间隔
+                }
+            }
+            
+            // 加载视频
+            async function loadVideo(number) {
+                if (validVideos.includes(number)) { // 只载已确认有效的视频
+                    try {
+                        const videoCard = createVideoCard(number);
+                        videoContainer.appendChild(videoCard);
+                        loadedCount++;
+                        currentCountElement.textContent = loadedCount;
+                        return true;
+                    } catch (error) {
+                        console.error('加载视频失败:', error);
+                    }
+                }
+                return false;
+            }
+            
+            // 初始化加载
+            async function initialize() {
+                const loading = updateLoadingText();
+                totalCountElement.textContent = "检测中...";
+                
+                totalVideos = await getTotalVideos();
+                clearInterval(loading.interval);
+                loading.element.remove();
+                
+                totalCountElement.textContent = totalVideos;
+                
+                // 使用分批加载
+                await loadVideoBatch(validVideos);
+                showLoadingComplete();
+            }
+            
+            // 显示加载完成提示
+            function showLoadingComplete() {
+                isLoading = false;
+                const message = document.createElement('div');
+                message.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    z-index: 2001;
+                `;
+                message.textContent = `已加载视频：${loadedCount}/${totalVideos}`;
+                document.body.appendChild(message);
+                
+                setTimeout(() => {
+                    message.remove();
+                }, 3000);
+            }
+            
+            // 开始初始化
+            initialize();
+        }
+
+        // 添加窗口大小改变的处理
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                // 重新计算网格布局
+                const container = document.querySelector('.video-container');
+                if (window.innerWidth <= 767) {
+                    container.style.gridTemplateColumns = 'repeat(2, 1fr)';
+                } else if (window.innerWidth <= 1023) {
+                    container.style.gridTemplateColumns = 'repeat(3, 1fr)';
+                } else {
+                    container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+                }
+            }, 250);
+        });
+
+        // 生成星星
+        function createStars() {
+            const starsContainer = document.getElementById('stars');
+            const numberOfStars = 150; // 减少星星数量
+            
+            for (let i = 0; i < numberOfStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                // 随机位置
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                
+                // 增星大小范围
+                const size = 1 + Math.random() * 3; // 最小1px，最大4px
+                
+                // 随机动画持续时间
+                const duration = 3 + Math.random() * 4;
+                
+                // 随机初始透明度
+                const initialOpacity = 0.3 + Math.random() * 0.7;
+                
+                star.style.cssText = `
+                    left: ${x}%;
+                    top: ${y}%;
+                    width: ${size}px;
+                    height: ${size}px;
+                    opacity: ${initialOpacity};
+                    --duration: ${duration}s;
+                `;
+                
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // 在页面加载完成后创建星星
+        window.addEventListener('DOMContentLoaded', () => {
+            createStars();
+            loadVideos(); // 保持原有的视频加载
+        });
+    </script>
+
+    <!-- 在body标签结束前添加页脚 -->
+    <footer style="text-align: center; padding: 20px 0; color: #fff; position: relative; z-index: 1;">
+        <div id="currentTime" class="rainbow-text" style="margin-bottom: 10px; font-size: 1.2rem;"></div>
+        <div class="links">
+            <a href="https://github.com/你的用户名">首页</a>
+            <span class="separator">|</span>
+            <a href="https://twitter.com/你的用户名">下一页</a>
+        </div>
+    </footer>
+
+    <script>
+        // 添加时间更新函数
+        function updateTime() {
+            const timeElement = document.getElementById('currentTime');
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+            timeElement.textContent = timeString;
+        }
+
+        // 每秒更新时间
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html> 
